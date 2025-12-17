@@ -4,6 +4,7 @@ import database.DatabaseManager;
 import database.SQLQueries;
 import visualization.TextChartGenerator;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) {
@@ -15,79 +16,98 @@ public class Main {
             CSVReader csvReader = new CSVReader();
             List<models.Earthquake> earthquakes = csvReader.readCSV("Землетрясения.csv");
 
+            if (earthquakes.isEmpty()) {
+                System.out.println("Не удалось прочитать данные из CSV файла");
+                return;
+            }
+
+            System.out.println("Успешно прочитано: " + earthquakes.size() + " землетрясений");
+
             EarthquakeAnalyzer analyzer = new EarthquakeAnalyzer();
             earthquakes.forEach(analyzer::addEarthquake);
 
             // 2. Вывод статистики
-            System.out.println("\n2. Статистика данных:");
+            System.out.println("\n=== Статистическая таблица ===");
             Map<String, Object> stats = analyzer.getStatistics();
             TextChartGenerator.printStatisticsTable(stats, "Общая статистика");
 
-            // 3. Создание и подключение к БД
-            System.out.println("\n3. Создание базы данных...");
-            DatabaseManager dbManager = new DatabaseManager("earthquakes.db");
-            dbManager.createTables();
+            // 3. Текстовая визуализация данных
+            System.out.println("\n=== Текстовая диаграмма 1 ===");
+            Map<String, Long> earthquakesByState = earthquakes.stream()
+                    .filter(eq -> eq.getState() != null && !eq.getState().isEmpty())
+                    .collect(Collectors.groupingBy(
+                            eq -> {
+                                String state = eq.getState();
+                                String[] parts = state.split(",");
+                                String cleanState = parts[0].trim();
+                                if (cleanState.length() > 25) {
+                                    return cleanState.substring(0, 25) + "...";
+                                }
+                                return cleanState;
+                            },
+                            Collectors.counting()))
+                    .entrySet().stream()
+                    .filter(entry -> entry.getValue() > 5)
+                    .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                    .limit(15)
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            Map.Entry::getValue,
+                            (v1, v2) -> v1,
+                            LinkedHashMap::new));
 
-            // 4. Сохранение данных в БД
-            System.out.println("\n4. Сохранение данных в базу данных...");
-            dbManager.saveEarthquakes(earthquakes);
+            Map<String, Number> stateData = new HashMap<>();
+            for (Map.Entry<String, Long> entry : earthquakesByState.entrySet()) {
+                stateData.put(entry.getKey(), entry.getValue());
+            }
 
-            // 5. Выполнение SQL запросов
-            System.out.println("\n5. Выполнение SQL запросов...");
-            SQLQueries queries = new SQLQueries(dbManager);
-
-            queries.getStrongEarthquakes();
-            queries.getEarthquakesByState();
-            queries.getDeepestEarthquakes(10);
-            queries.getEarthquakesByYear();
-            queries.getAverageMagnitudeByType();
-
-            // 6. Текстовая визуализация данных
-            System.out.println("\n6. Текстовая визуализация данных...");
-
-            // Используем методы из EarthquakeAnalyzer
             TextChartGenerator.printBarChart(
                     "Количество землетрясений по штатам (топ-15)",
-                    convertToNumberMap(analyzer.getEarthquakeCountByState()),
+                    stateData,
                     "Штат",
                     "Количество землетрясений");
 
+            // Распределение по магнитудам
+            System.out.println("\n=== Текстовая диаграмма 2 ===");
+            Map<String, Long> magnitudeDistribution = earthquakes.stream()
+                    .collect(Collectors.groupingBy(
+                            eq -> {
+                                double mag = eq.getMagnitude();
+                                if (mag < 2.0) return "< 2.0";
+                                else if (mag < 3.0) return "2.0 - 2.9";
+                                else if (mag < 4.0) return "3.0 - 3.9";
+                                else if (mag < 5.0) return "4.0 - 4.9";
+                                else return ">= 5.0";
+                            },
+                            Collectors.counting()));
+
+            Map<String, Number> magnitudeData = new HashMap<>();
+            for (Map.Entry<String, Long> entry : magnitudeDistribution.entrySet()) {
+                magnitudeData.put(entry.getKey(), entry.getValue());
+            }
+
             TextChartGenerator.printPieChart(
                     "Распределение землетрясений по магнитудам",
-                    convertToNumberMap(analyzer.getMagnitudeDistribution()));
+                    magnitudeData);
 
-            TextChartGenerator.printBarChart(
-                    "Распределение землетрясений по глубине",
-                    convertToNumberMap(analyzer.getDepthDistribution()),
-                    "Глубина",
-                    "Количество");
+            // 4. Работа с базой данных
+            System.out.println("\n=== Результаты SQL запросов ===");
+            DatabaseManager dbManager = new DatabaseManager("earthquakes.db");
+            dbManager.createTables();
+            dbManager.saveEarthquakes(earthquakes);
 
-            TextChartGenerator.printBarChart(
-                    "Количество землетрясений по годам",
-                    convertToNumberMap(analyzer.getYearDistribution()),
-                    "Год",
-                    "Количество");
+            // 5. Выполнение SQL запросов
+            SQLQueries queries = new SQLQueries(dbManager);
+            queries.getStrongEarthquakes();
+            queries.getDeepestEarthquakes(10);
+            queries.getEarthquakesByYear();
+            queries.getAverageMagnitudeByType();
+            queries.getTopEarthquakes();
 
-            System.out.println("\n7. Завершение работы...");
             dbManager.close();
-
-
-            System.out.println("КОМПИЛЯЦИЯ УСПЕШНО ЗАВЕРШЕН!");
-
-
 
         } catch (Exception e) {
             System.err.println("Ошибка выполнения программы: " + e.getMessage());
-            e.printStackTrace();
         }
-    }
-
-    // Вспомогательный метод для преобразования Map<String, Long> в Map<String, Number>
-    private static Map<String, Number> convertToNumberMap(Map<String, Long> longMap) {
-        Map<String, Number> numberMap = new HashMap<>();
-        for (Map.Entry<String, Long> entry : longMap.entrySet()) {
-            numberMap.put(entry.getKey(), entry.getValue());
-        }
-        return numberMap;
     }
 }
