@@ -11,7 +11,6 @@ public class TextChartGenerator {
         System.out.printf("%-30s | %-20s | %s%n", categoryLabel, valueLabel, "График");
         System.out.println("-".repeat(60));
 
-        // Находим максимальное значение для масштабирования
         double maxValue = data.values().stream()
                 .mapToDouble(Number::doubleValue)
                 .max()
@@ -52,7 +51,6 @@ public class TextChartGenerator {
             double value = entry.getValue().doubleValue();
             double percentage = (value / total) * 100;
 
-            // Символьное представление доли
             int dots = Math.max(1, (int) (percentage / 2));
             String share = "•".repeat(dots);
 
@@ -61,7 +59,6 @@ public class TextChartGenerator {
         }
     }
 
-    // ИЗМЕНЕНО: Метод теперь принимает Map<String, Object>
     public static void printStatisticsTable(Map<String, Object> data, String title) {
         System.out.println("\n" + title);
         System.out.println("=".repeat(60));

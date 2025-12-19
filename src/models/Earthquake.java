@@ -43,7 +43,11 @@ public class Earthquake {
 
     @Override
     public String toString() {
-        return String.format("Earthquake{id='%s', magnitude=%.2f, state='%s', time=%s}",
-                id, magnitude, state, time);
+        String timeStr = (time != null) ?
+                time.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) :
+                "Нет данных";
+
+        return String.format("Earthquake{id='%s', magnitude=%.2f, depth=%.0f, state='%s', time=%s}",
+                id, magnitude, depth, state, timeStr);
     }
 }
