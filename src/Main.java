@@ -61,7 +61,7 @@ public class Main {
             System.out.println("\n" + "=".repeat(50));
             System.out.println("5. Визуализация данных:");
 
-            // 5.1 Распределение по штатам (с нормализацией регистра)
+            // 5.1 Распределение по штатам
             System.out.println("\n=== Распределение по штатам ===");
             Map<String, Long> earthquakesByState = analyzer.getEarthquakeCountByState();
             if (!earthquakesByState.isEmpty()) {

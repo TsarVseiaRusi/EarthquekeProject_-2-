@@ -40,14 +40,13 @@ public class EarthquakeAnalyzer {
                     .filter(eq -> eq.getTime() != null)
                     .count();
 
-            // Самые частые штаты (с нормализацией регистра)
+            // Самые частые штаты
             Map<String, Long> stateCounts = earthquakes.stream()
                     .filter(eq -> eq.getState() != null && !eq.getState().isEmpty())
                     .collect(Collectors.groupingBy(
                             eq -> {
                                 String state = eq.getState();
                                 String[] parts = state.split(",");
-                                // Нормализуем регистр: первая буква заглавная, остальные строчные
                                 String normalized = normalizeStateName(parts[0].trim());
                                 return normalized;
                             },
@@ -71,7 +70,7 @@ public class EarthquakeAnalyzer {
             stats.put("Уникальных штатов", stateCounts.size());
             stats.put("Самый частый штат", topState);
 
-            // Диапазон годов, если есть время
+            // Диапазон годов
             if (withTime > 0) {
                 Optional<Earthquake> oldest = earthquakes.stream()
                         .filter(eq -> eq.getTime() != null)
@@ -99,7 +98,6 @@ public class EarthquakeAnalyzer {
                             String state = eq.getState();
                             String[] parts = state.split(",");
                             String cleanState = parts[0].trim();
-                            // Нормализуем имя штата: правильный регистр
                             cleanState = normalizeStateName(cleanState);
                             if (cleanState.length() > 25) {
                                 return cleanState.substring(0, 25) + "...";
@@ -261,7 +259,7 @@ public class EarthquakeAnalyzer {
                 .collect(Collectors.toList());
     }
 
-    // Получить статистику по штатам с нормализацией
+    // Получить статистику по штатам
     public Map<String, Long> getStateStatistics() {
         return earthquakes.stream()
                 .filter(eq -> eq.getState() != null && !eq.getState().isEmpty())
@@ -270,7 +268,6 @@ public class EarthquakeAnalyzer {
                             String state = eq.getState();
                             String[] parts = state.split(",");
                             String cleanState = parts[0].trim();
-                            // Нормализуем имя штата
                             return normalizeStateName(cleanState);
                         },
                         Collectors.counting()))

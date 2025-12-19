@@ -37,8 +37,6 @@ public class CSVReader {
                         earthquakes.add(eq);
                         successCount++;
 
-
-
                     } else {
                         errorCount++;
                         if (errorCount <= 3) {
@@ -220,7 +218,6 @@ public class CSVReader {
                 .replace("  ", " ")
                 .trim();
 
-        // Убираем временную зону если она есть
         if (cleaned.contains("+")) {
             cleaned = cleaned.substring(0, cleaned.indexOf("+"));
         }
