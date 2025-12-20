@@ -1,2 +1,1 @@
-
-[Uploading Readme.pdf…]()
+Readme в Readme.pdf
